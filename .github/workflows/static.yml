@@ -32,8 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # --- ส่วนที่เพิ่ม 1: เปลี่ยนชื่อไฟล์ a.html เป็น index.html ---
-      # สาเหตุ: Browser จะหาไฟล์ index.html เป็นไฟล์แรกเสมอ เราจึงต้อง copy a.html ให้เป็น index.html ก่อน deploy
+      # แก้จุดที่ 1: ก๊อปปี้ไปไว้ที่ Root (index.html)
       - name: Prepare Index File
         run: cp ทดสอบ/A.html index.html
 
@@ -43,8 +42,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # --- ส่วนที่เพิ่ม 2: ระบุโฟลเดอร์เป้าหมาย ---
-          # เปลี่ยนจาก '.' (ทั้งโปรเจค) เป็นโฟลเดอร์ที่เก็บไฟล์เว็บของคุณ
+          # แก้จุดที่ 2: อัปโหลดทุกโฟลเดอร์ (เพื่อให้ foot ติดไปด้วย)
           path: '.'
 
       - name: Deploy to GitHub Pages
