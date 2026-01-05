@@ -34,7 +34,12 @@ jobs:
 
       # แก้จุดที่ 1: ก๊อปปี้ไปไว้ที่ Root (index.html)
       - name: Prepare Index File
-        run: cp ทดสอบ/A.html index.html
+        run: |
+          # 1. ก๊อปปี้ไฟล์ออกมาไว้หน้าบ้าน
+          cp ทดสอบ/A.html index.html
+          
+          # 2. ใช้คำสั่ง sed แก้โค้ดข้างในไฟล์ index.html (เปลี่ยน ../foot เป็น foot)
+          sed -i 's|\.\./foot|foot|g' index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
