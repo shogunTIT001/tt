@@ -35,7 +35,7 @@ jobs:
       # --- ส่วนที่เพิ่ม 1: เปลี่ยนชื่อไฟล์ a.html เป็น index.html ---
       # สาเหตุ: Browser จะหาไฟล์ index.html เป็นไฟล์แรกเสมอ เราจึงต้อง copy a.html ให้เป็น index.html ก่อน deploy
       - name: Prepare Index File
-        run: cp ทดสอบ/a.html 
+        run: cp ทดสอบ/A.html 
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
