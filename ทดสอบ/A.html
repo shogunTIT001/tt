@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurants across Thailand - Full System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .receipt-font { font-family: 'Sarabun', sans-serif; }
+        .pop-in { animation: pop 0.3s ease-out; }
+        @keyframes pop { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .orange-gradient { background: linear-gradient(135deg, #ff4d00, #ff8c00); }
+        .coupon-gradient { background: linear-gradient(135deg, #ff0055, #ff4d00); }
+        .promo-banner { background: linear-gradient(90deg, #ff4d00, #ff0055); }
+        .coupon-card { transition: transform 0.2s; }
+        .coupon-card:active { transform: scale(0.98); }
+        @media print { 
+            .no-print { display: none !important; } 
+            .print-only { display: block !important; }
+            body { background: white; }
+        }
+    </style>
+
+</head>
+<body class="bg-gray-50 text-slate-900 overflow-x-hidden">
+
+    <!-- Promo Banner -->
+    <div class="promo-banner text-white py-2 text-center text-xs md:text-sm font-bold no-print shadow-sm z-[110] relative">
+        🔥 Flash Deal: สั่งครบ 500.- ลดทันที 10% | สมาชิกรับแต้มทุกยอดซื้อ!
+    </div>
+
+    <!-- Navbar -->
+    <nav class="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-[100] no-print">
+        <div class="container mx-auto px-4 md:px-6 py-3 flex justify-between items-center">
+            <!-- Logo -->
+            <div class="flex items-center space-x-2 cursor-pointer" onclick="switchPage('home')">
+                <div class="w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center text-white shadow-md overflow-hidden bg-orange-100">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1147/1147810.png" alt="Logo" class="w-8 h-8 md:w-10 md:h-10 object-contain">
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-lg md:text-xl font-bold tracking-tight leading-none">Restaurants</span>
+                    <span class="text-sm md:text-base text-orange-600 font-bold leading-none">Thailand</span>
+                </div>
+            </div>
+            
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex space-x-8 font-medium text-sm">
+                <a href="javascript:void(0)" onclick="switchPage('home')" id="nav-home" class="text-orange-600 font-bold">หน้าหลัก</a>
+                <a href="javascript:void(0)" onclick="switchPage('promo')" id="nav-promo" class="hover:text-orange-600 transition">โปรโมชั่น</a>
+                <a href="#" class="hover:text-orange-600 transition">ติดต่อเรา</a>
+            </div>
+
+            <!-- User & Cart -->
+            <div class="flex items-center space-x-3">
+                <!-- User Section -->
+                <div id="user-section">
+                    <button onclick="openAuthModal()" id="login-btn" class="px-4 py-1.5 rounded-full text-xs md:text-sm font-bold border border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white transition">
+                        เข้าสู่ระบบ
+                    </button>
+                    <!-- User Logged In State -->
+                    <div id="user-info" class="hidden flex items-center gap-2 bg-slate-100 pl-1 pr-2 py-1 rounded-full border border-slate-200">
+                        <div class="w-8 h-8 rounded-full bg-orange-600 text-white flex items-center justify-center text-xs"><i class="fas fa-user"></i></div>
+                        <div class="flex flex-col text-right mr-1">
+                            <span id="display-name" class="text-[10px] font-bold leading-none">User</span>
+                            <span id="display-points" class="text-[9px] text-orange-600 font-bold leading-none">0 Pts</span>
+                        </div>
+                        
+                        <!-- History Button -->
+                        <button onclick="openHistoryModal()" class="w-7 h-7 rounded-full bg-white text-slate-500 hover:text-orange-600 flex items-center justify-center transition shadow-sm border border-slate-100" title="ประวัติการสั่งซื้อ">
+                            <i class="fas fa-history text-xs"></i>
+                        </button>
+                        
+                        <!-- Logout Button -->
+                        <button onclick="logout()" class="w-7 h-7 rounded-full bg-white text-slate-400 hover:text-red-500 flex items-center justify-center transition shadow-sm border border-slate-100" title="ออกจากระบบ">
+                            <i class="fas fa-sign-out-alt text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cart Toggle -->
+                <button onclick="toggleCart()" class="relative p-2.5 bg-orange-50 rounded-full hover:bg-orange-100 transition text-orange-600">
+                    <i class="fas fa-shopping-basket text-lg"></i>
+                    <span id="cart-count" class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold border border-white">0</span>
+                </button>
+
+                <!-- Mobile Menu Toggle -->
+                <button class="md:hidden p-2 text-slate-600" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobile-menu" class="fixed inset-0 bg-slate-900/50 z-[110] hidden backdrop-blur-sm no-print">
+        <div class="bg-white w-3/4 h-full p-6 shadow-xl animate-slide-in">
+            <div class="flex justify-between items-center mb-8">
+                <span class="font-bold text-xl">เมนู</span>
+                <button onclick="toggleMobileMenu()"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="flex flex-col space-y-4">
+                <a href="#" onclick="switchPage('home'); toggleMobileMenu()" class="py-3 px-4 bg-orange-50 text-orange-600 rounded-xl font-bold">หน้าหลัก</a>
+                <a href="#" onclick="switchPage('promo'); toggleMobileMenu()" class="py-3 px-4 hover:bg-gray-50 rounded-xl">โปรโมชั่น</a>
+                <a href="#" onclick="openHistoryModal(); toggleMobileMenu();" class="py-3 px-4 hover:bg-gray-50 rounded-xl flex items-center gap-2">
+                    <i class="fas fa-history text-slate-400"></i> ประวัติการสั่งซื้อ
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: HOME PAGE -->
+    <div id="view-home">
+        <!-- Hero Section -->
+        <section class="bg-white px-4 py-8 md:py-12 no-print border-b">
+            <div class="container mx-auto max-w-4xl text-center">
+                <h1 class="text-3xl md:text-5xl font-extrabold mb-3 leading-tight text-slate-800">เสิร์ฟความอร่อย <br class="md:hidden"><span class="text-orange-600">ถึงมือคุณ</span></h1>
+                <p class="text-slate-500 mb-6 text-sm md:text-base">อาหารสดใหม่ ปรุงสุกร้อนๆ พร้อมส่งตรงถึงหน้าบ้าน</p>
+                
+                <div class="relative max-w-xl mx-auto">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="search-input" onkeyup="filterMenu()" 
+                        placeholder="ค้นหาเมนูที่ต้องการ..." 
+                        class="w-full pl-12 pr-4 py-3 bg-slate-100 rounded-full border-2 border-transparent focus:border-orange-500 focus:bg-white transition outline-none text-sm shadow-sm">
+                </div>
+            </div>
+        </section>
+
+        <!-- Menu Section -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- Categories -->
+            <div class="flex overflow-x-auto pb-4 mb-6 hide-scroll space-x-2 no-print">
+                <button onclick="filterCategory('all')" class="cat-btn flex-shrink-0 px-5 py-2 rounded-full bg-orange-600 text-white font-bold text-sm shadow-md transition">ทั้งหมด</button>
+                <button onclick="filterCategory('food')" class="cat-btn flex-shrink-0 px-5 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm transition">อาหาร</button>
+                <button onclick="filterCategory('drink')" class="cat-btn flex-shrink-0 px-5 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm transition">เครื่องดื่ม</button>
+                <button onclick="filterCategory('dessert')" class="cat-btn flex-shrink-0 px-5 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm transition">ของหวาน</button>
+            </div>
+
+            <!-- Grid -->
+            <div id="menu-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"></div>
+        </main>
+    </div>
+
+    <!-- VIEW: PROMO PAGE -->
+    <div id="view-promo" class="hidden container mx-auto px-4 py-8 pop-in">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-slate-800">คูปองส่วนลดพิเศษ <i class="fas fa-tags text-orange-600"></i></h2>
+            <p class="text-slate-500">เลือกใช้คูปองที่คุ้มค่าที่สุดสำหรับมื้อนี้ของคุณ</p>
+        </div>
+        
+        <div id="promo-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Promo Cards Rendered via JS -->
+        </div>
+
+        <div class="mt-12 p-6 bg-slate-50 rounded-3xl text-center">
+            <h3 class="font-bold text-lg mb-2">เงื่อนไขการใช้คูปอง</h3>
+            <p class="text-sm text-slate-500">คูปองแต่ละใบมีเงื่อนไขการใช้งานที่แตกต่างกัน ไม่สามารถใช้ร่วมกับรายการส่งเสริมการขายอื่นได้ในบางกรณี หากมีข้อสงสัยกรุณาติดต่อเจ้าหน้าที่</p>
+        </div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <div id="cart-sidebar" class="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-white shadow-2xl z-[120] transform translate-x-full transition-transform duration-300 flex flex-col no-print">
+        <div class="p-5 border-b flex justify-between items-center bg-white">
+            <h2 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-shopping-cart text-orange-600"></i> ตะกร้าสินค้า</h2>
+            <button onclick="toggleCart()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div id="cart-items" class="flex-grow overflow-y-auto p-5 space-y-4 bg-slate-50"></div>
+
+        <div class="p-5 bg-white border-t shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+            <!-- Active Coupon Display -->
+            <div id="active-coupon-box" class="hidden mb-3 p-3 bg-green-50 border border-green-200 rounded-xl flex justify-between items-center pop-in">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-ticket-alt text-green-600"></i>
+                    <div>
+                        <p class="text-xs font-bold text-green-700" id="ac-code">CODE</p>
+                        <p class="text-[10px] text-green-600" id="ac-desc">Description</p>
+                    </div>
+                </div>
+                <button onclick="removeCoupon()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+            </div>
+
+            <!-- Points Redeem -->
+            <div id="redeem-section" class="hidden mb-4 p-3 bg-orange-50 rounded-xl border border-orange-100">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-orange-800"><i class="fas fa-coins text-yellow-500 mr-1"></i> ใช้แต้มแลกส่วนลด</span>
+                    <span id="user-total-pts-cart" class="text-[10px] bg-white px-2 py-0.5 rounded-full border border-orange-200 text-orange-600 font-bold">0 Pts</span>
+                </div>
+
+                <!-- Special 1000 pts -> 10% Offer -->
+                <div id="points-promo-offer" class="mb-3 p-3 bg-white rounded-lg border border-orange-100 text-sm text-slate-700">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <div class="font-bold">ใช้ 1000 แต้ม รับส่วนลด 10%</div>
+                            <div class="text-xs text-slate-500">ส่วนลดจะคิดจากยอดรวมก่อนภาษี</div>
+                        </div>
+                        <div>
+                            <button id="btn-use-points-promo" onclick="togglePointsPromo()" class="bg-white border border-orange-200 text-orange-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-50">ใช้</button>
+                        </div>
+                    </div>
+                    <div id="points-promo-status" class="text-xs text-slate-500 hidden">คุณเลือกใช้โปรโมชั่นแต้มนี้แล้ว</div>
+                </div>
+
+                <div class="flex gap-2">
+                    <input type="number" id="use-points-input" class="flex-grow px-3 py-1.5 rounded-lg text-xs border border-orange-200 outline-none focus:border-orange-500" placeholder="ระบุแต้ม (10 Pts = 1.-)">
+                    <button onclick="applyPoints()" class="bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-700">ใช้</button>
+                </div>
+            </div>
+
+            <!-- Pricing Summary -->
+            <div class="space-y-1.5 text-sm mb-4">
+                <div class="flex justify-between text-slate-500"><span>รวมรายการสินค้า</span><span id="cart-subtotal">฿0.00</span></div>
+                
+                <!-- System Promo (Auto) -->
+                <div id="row-promo" class="flex justify-between text-green-600 hidden"><span>โปรฯ อัตโนมัติ (ครบ 500)</span><span id="val-promo">-฿0.00</span></div>
+                
+                <!-- Coupon Promo (Manual) -->
+                <div id="row-coupon" class="flex justify-between text-green-600 hidden">
+                    <span class="flex items-center gap-1"><i class="fas fa-tag text-xs"></i> <span id="lbl-coupon">คูปองส่วนลด</span></span>
+                    <span id="val-coupon">-฿0.00</span>
+                </div>
+
+                <div id="row-points" class="flex justify-between text-blue-600 hidden"><span>ส่วนลดจากแต้ม</span><span id="val-points">-฿0.00</span></div>
+                <div id="row-points-promo" class="flex justify-between text-blue-700 hidden"><span>ส่วนลด 10% (ใช้ 1000 แต้ม)</span><span id="val-points-promo">-฿0.00</span></div>
+                <div class="flex justify-between text-slate-500 text-xs"><span>ภาษีมูลค่าเพิ่ม (VAT 7%)</span><span id="cart-vat">฿0.00</span></div>
+                
+                <div class="flex justify-between items-end border-t pt-3 mt-2">
+                    <span class="font-bold text-slate-800">ยอดสุทธิ</span>
+                    <span id="cart-total" class="text-2xl font-bold text-orange-600">฿0.00</span>
+                </div>
+            </div>
+            
+            <button onclick="checkout()" class="w-full orange-gradient text-white py-3.5 rounded-xl font-bold text-base shadow-lg hover:brightness-110 active:scale-[0.98] transition">
+                ยืนยันการสั่งซื้อ
+            </button>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="fixed inset-0 bg-slate-900/60 z-[300] hidden items-center justify-center p-4 backdrop-blur-sm no-print">
+        <div class="bg-white w-full max-w-lg h-[80vh] rounded-3xl shadow-2xl overflow-hidden pop-in flex flex-col relative">
+            <div class="p-6 border-b flex justify-between items-center bg-white z-10">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">ประวัติการสั่งซื้อ</h3>
+                    <p class="text-xs text-slate-500">รายการสั่งซื้อย้อนหลังของคุณ</p>
+                </div>
+                <button onclick="closeHistoryModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div id="history-content" class="flex-grow overflow-y-auto p-6 space-y-4 bg-slate-50">
+                <!-- History Items Will Be Injected Here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-slate-900/60 z-[300] hidden items-center justify-center p-4 backdrop-blur-sm no-print">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden pop-in relative">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            
+            <div class="p-8">
+                <div class="text-center mb-6">
+                    <h3 id="auth-title" class="text-2xl font-bold text-slate-800">เข้าสู่ระบบ</h3>
+                    <p class="text-xs text-slate-500 mt-1">สะสมแต้มและรับสิทธิพิเศษมากมาย</p>
+                </div>
+                
+                <!-- Login Form -->
+                <div id="login-form" class="space-y-4">
+                    <input type="email" id="login-email" class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 focus:border-orange-500 outline-none transition text-sm" placeholder="อีเมล">
+                    <input type="password" id="login-password" class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 focus:border-orange-500 outline-none transition text-sm" placeholder="รหัสผ่าน">
+                    <button onclick="handleLogin()" class="w-full orange-gradient text-white py-3 rounded-xl font-bold shadow-lg text-sm">เข้าสู่ระบบ</button>
+                    <p class="text-center text-xs text-slate-500">ยังไม่มีบัญชี? <a href="#" onclick="switchAuth('reg')" class="text-orange-600 font-bold">สมัครสมาชิก</a></p>
+                </div>
+
+                <!-- Register Form -->
+                <div id="reg-form" class="space-y-4 hidden">
+                    <input type="text" id="reg-name" class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 focus:border-orange-500 outline-none transition text-sm" placeholder="ชื่อที่ใช้แสดง">
+                    <input type="email" id="reg-email" class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 focus:border-orange-500 outline-none transition text-sm" placeholder="อีเมล">
+                    <input type="password" id="reg-password" class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 focus:border-orange-500 outline-none transition text-sm" placeholder="กำหนดรหัสผ่าน">
+                    <button onclick="handleRegister()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold shadow-lg text-sm">สมัครสมาชิก</button>
+                    <p class="text-center text-xs text-slate-500">มีบัญชีแล้ว? <a href="#" onclick="switchAuth('login')" class="text-orange-600 font-bold">เข้าสู่ระบบ</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div id="receipt-modal" class="fixed inset-0 bg-slate-900/80 z-[200] hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl pop-in overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- Printable Area -->
+            <div id="printable-receipt" class="p-8 receipt-font overflow-y-auto bg-white">
+                <div class="text-center mb-6">
+                    <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2 text-orange-600 text-xl">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <h2 class="text-xl font-bold uppercase tracking-wide">Siam Delights</h2>
+                    <p class="text-[10px] text-slate-500 mt-1">123 ถ.สุขุมวิท เขตวัฒนา กรุงเทพฯ 10110</p>
+                    <p class="text-[10px] text-slate-500">TAX ID: 0105551234567 | โทร: 02-XXX-XXXX</p>
+                </div>
+
+                <div class="border-y border-dashed border-slate-300 py-3 my-4 text-[11px] space-y-1 text-slate-600">
+                    <div class="flex justify-between"><span>เลขที่ใบเสร็จ:</span><span id="rec-id" class="font-mono font-bold text-slate-800"></span></div>
+                    <div class="flex justify-between"><span>วันที่:</span><span id="rec-date"></span></div>
+                    <div class="flex justify-between"><span>ลูกค้า:</span><span id="rec-customer" class="font-bold text-slate-800"></span></div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-[11px] font-bold border-b border-slate-200 pb-1 mb-2 text-slate-800">
+                        <span>รายการ</span>
+                        <span>รวม</span>
+                    </div>
+                    <div id="rec-items-list" class="space-y-1.5 text-[11px] text-slate-600"></div>
+                </div>
+
+                <div class="border-t border-dashed border-slate-300 pt-3 space-y-1 text-[11px] text-slate-600">
+                    <div class="flex justify-between"><span>รวมเงิน (Subtotal)</span><span id="rec-sub"></span></div>
+                    
+                    <div class="flex justify-between text-green-600 hidden" id="rec-row-disc"><span>ส่วนลด (Promo)</span><span id="rec-disc"></span></div>
+                    <div class="flex justify-between text-green-600 hidden" id="rec-row-coupon"><span>คูปอง (Coupon)</span><span id="rec-coupon-val"></span></div>
+                    <div class="flex justify-between text-blue-700 hidden" id="rec-row-points-promo"><span>ส่วนลดแต้ม 10% (1000 แต้ม)</span><span id="rec-points-promo-val"></span></div>
+                    
+                    <div class="flex justify-between"><span>ภาษีมูลค่าเพิ่ม 7% (VAT)</span><span id="rec-vat-val"></span></div>
+                    <div class="flex justify-between text-base font-bold border-t border-double border-slate-300 pt-2 mt-2 text-slate-900">
+                        <span>ยอดสุทธิ (Total)</span><span id="rec-net"></span>
+                    </div>
+                </div>
+
+                <div id="rec-points-info" class="mt-4 p-2 bg-slate-50 rounded border border-slate-100 text-center hidden">
+                    <p class="text-[10px] text-slate-500">แต้มสมาชิก (Member Points)</p>
+                    <p class="text-xs font-bold text-orange-600">ได้รับ: <span id="rec-earned"></span> | คงเหลือ: <span id="rec-balance"></span></p>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://example.com/pay" class="w-20 h-20 mx-auto mix-blend-multiply opacity-80 mb-2">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase">Scan to Pay</p>
+                    <p class="text-[9px] text-slate-400 mt-2">*** ขอบคุณที่ใช้บริการ ***</p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="p-4 bg-slate-50 flex gap-3 no-print border-t">
+                <button onclick="window.print()" class="flex-1 bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-bold text-sm hover:bg-slate-50 transition flex items-center justify-center gap-2">
+                    <i class="fas fa-print"></i> พิมพ์
+                </button>
+                <button onclick="closeReceipt()" class="flex-1 bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-black transition">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div id="overlay" onclick="closeAllMenus()" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[105] hidden no-print"></div>
+
+    <script type="module">
+        // --- DATA ---
+      const foodMenu = [
+            { id: 101, name: 'ข้าวคลุกกะปิ', price: 50, category: 'food', img: '../food/Savory food101/1001.webp' },
+            { id: 102, name: 'กะเพราหมูกรอบ', price: 60, category: 'food', img: '../food/Savory food101/1002.webp' },
+            { id: 103, name: 'สปาเกตตี้ผัดขี้เมาทะเล', price: 79, category: 'food', img: '../food/Savory food101/1003.jpg' },
+            { id: 104, name: 'ข้าวหน้าไก่ซอสเทริยากิ', price: 69, category: 'food', img: '../food/Savory food101/1004.webp' },
+            { id: 105, name: 'ราดหน้าหมูเส้นใหญ่', price: 40, category: 'food', img: '../food/Savory food101/1005.webp' },
+            { id: 106, name: 'ข้าวไข่เจียวหมูสับ', price: 40, category: 'food', img: '../food/Savory food101/1006.jpg' },
+            { id: 107, name: 'ข้าวหมูแดงหมูกรอบ', price: 60, category: 'food', img: '../food/Savory food101/1007.jpg' },
+        ];
+
+        // 2. หมวดเครื่องดื่ม (Drink) -> รหัสขึ้นต้นด้วย 2xx
+        const drinkMenu = [
+            { id: 201, name: 'นมชมพู', price: 25, category: 'drink', img: '../food/Beverage201/2001.webp' },
+            { id: 202, name: 'ชาไทยเย็น', price: 35, category: 'drink', img: '../food/Beverage201/2002.jpg' },
+            { id: 203, name: 'โกโก้เย็น', price: 30, category: 'drink', img: '../food/Beverage201/2003.jpg' },
+            { id: 204, name: 'ชาเลมอน', price: 30, category: 'drink', img: '../food/Beverage201/2004.jpg' },
+            { id: 205, name: 'กาแฟลาเต้เย็น', price: 35, category: 'drink', img: '../food/Beverage201/2005.png' },
+            { id: 206, name: 'ชาเขียวมัทฉะ', price: 35, category: 'drink', img: '../food/Beverage201/2006.jpg' },
+            { id: 207, name: 'ชานมไข่มุก', price: 35, category: 'drink', img: '../food/Beverage201/2007.jpg' },
+        ];
+
+        // 3. หมวดของหวาน (Dessert) -> รหัสขึ้นต้นด้วย 3xx
+        const dessertMenu = [
+            { id: 301, name: 'วาฟเฟิลไอศกรีม', price: 79, category: 'dessert', img: '../food/Dessert301/3001.jpg' },
+            { id: 302, name: 'บราวนี่ช็อกโกแลต', price: 15, category: 'dessert', img: '../food/Dessert301/3002.jpg' },
+            { id: 303, name: 'ไอศกรีมกะทิ', price: 29, category: 'dessert', img: '../food/Dessert301/3003.jpg' },
+            { id: 304, name: 'แพนเค้กน้ำผึ้ง', price: 59, category: 'dessert', img: '../food/Dessert301/3004.webp' },
+            { id: 305, name: 'เฉาก๊วยนมสด', price: 20, category: 'dessert', img: '../food/Dessert301/3005.webp' },
+            { id: 306, name: 'เครปหวาน', price: 59, category: 'dessert', img: '../food/Dessert301/3006.webp' },
+            { id: 307, name: 'ขนมปังปิ้งเนยนม', price: 20, category: 'dessert', img: '../food/Dessert301/3007.jpg' },
+            { id: 308, name: 'บัวลอยไข่หวาน', price: 30, category: 'dessert', img: '../food/Dessert301/3008.jpg' },
+            { id: 309, name: 'ข้าวเหนียวมะม่วง', price: 60, category: 'dessert', img: '../food/Dessert301/3009.jpg' },
+            { id: 310, name: 'เค้กช็อกโกแลต', price: 35, category: 'dessert', img: '../food/Dessert301/3010.jpg' },
+        ];
+
+        const menuData = [...foodMenu, ...drinkMenu, ...dessertMenu];
+
+        const couponsData = [
+            { code: 'WELCOME10', title: 'คูปองต้อนรับ', desc: 'รับส่วนลด 10% สำหรับการสั่งซื้อครั้งแรก', type: 'percent', val: 10, min: 0, cat: null, icon: 'fa-gift' },
+            { code: 'FOOD50', title: 'ลดอาหาร 50.-', desc: 'ลดทันที 50.- เมื่อสั่งอาหารครบ 300.-', type: 'fixed', val: 50, min: 300, cat: 'food', icon: 'fa-hamburger' },
+            { code: 'DRINK20', title: 'เครื่องดื่มลด 20%', desc: 'ลด 20% เฉพาะหมวดเครื่องดื่ม', type: 'percent', val: 20, min: 0, cat: 'drink', icon: 'fa-mug-hot' },
+        ];
+
+        let cart = [];
+        let currentUser = null;
+        let activeCat = 'all';
+        let pointsDiscount = 0; 
+
+        // Points promo: when user has >= 1000 points they can use 1000 pts to get 10% off
+        let pointsPromoActive = false;
+        const POINTS_PROMO_COST = 1000;
+        const POINTS_PROMO_PERCENT = 0.10;
+
+        let activeCoupon = null; // เก็บคูปองที่เลือกใช้
+
+        // --- NAVIGATION ---
+        function switchPage(page) {
+            document.getElementById('view-home').classList.toggle('hidden', page !== 'home');
+            document.getElementById('view-promo').classList.toggle('hidden', page !== 'promo');
+            
+            // Update Active Nav State
+            const homeLink = document.getElementById('nav-home');
+            const promoLink = document.getElementById('nav-promo');
+            
+            if(page === 'home') {
+                homeLink.classList.add('text-orange-600', 'font-bold');
+                promoLink.classList.remove('text-orange-600', 'font-bold');
+            } else {
+                homeLink.classList.remove('text-orange-600', 'font-bold');
+                promoLink.classList.add('text-orange-600', 'font-bold');
+                renderPromos();
+            }
+            closeAllMenus();
+        }
+
+        // --- AUTH SYSTEM ---
+        function switchAuth(type) {
+            const loginF = document.getElementById('login-form');
+            const regF = document.getElementById('reg-form');
+            const title = document.getElementById('auth-title');
+            
+            if(type === 'reg') {
+                loginF.classList.add('hidden');
+                regF.classList.remove('hidden');
+                title.innerText = 'สมัครสมาชิก';
+            } else {
+                loginF.classList.remove('hidden');
+                regF.classList.add('hidden');
+                title.innerText = 'เข้าสู่ระบบ';
+            }
+        }
+
+        function openAuthModal() { document.getElementById('auth-modal').classList.remove('hidden'); }
+        function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
+
+        function handleRegister() {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-password').value;
+
+            if(!name || !email || !pass) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+
+            let users = JSON.parse(localStorage.getItem('users') || '[]');
+            if(users.find(u => u.email === email)) return alert("อีเมลนี้ถูกใช้งานแล้ว");
+
+            const newUser = { name, email, pass, points: 5000, orders: [] }; 
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            alert("สมัครสมาชิกสำเร็จ! รับฟรี 50 แต้ม");
+            switchAuth('login');
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = users.find(u => u.email === email && u.pass === pass);
+
+            if(user) {
+                if(!user.orders) user.orders = [];
+                currentUser = user;
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                updateUserUI();
+                closeAuthModal();
+                updateCart(); 
+            } else {
+                alert("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+            }
+        }
+
+        function logout() {
+            if(confirm("ต้องการออกจากระบบ?")) {
+                currentUser = null;
+                localStorage.removeItem('currentUser');
+                pointsDiscount = 0;
+                activeCoupon = null;
+                pointsPromoActive = false;
+                updateUserUI();
+                updateCart();
+            }
+        }
+
+        function updateUserUI() {
+            const loginBtn = document.getElementById('login-btn');
+            const userInfo = document.getElementById('user-info');
+            const redeemSec = document.getElementById('redeem-section');
+            
+            if(currentUser) {
+                loginBtn.classList.add('hidden');
+                userInfo.classList.remove('hidden');
+                redeemSec.classList.remove('hidden');
+                document.getElementById('display-name').innerText = currentUser.name;
+                document.getElementById('display-points').innerText = `${currentUser.points} Pts`;
+                document.getElementById('user-total-pts-cart').innerText = `${currentUser.points} Pts`;
+            } else {
+                loginBtn.classList.remove('hidden');
+                userInfo.classList.add('hidden');
+                redeemSec.classList.add('hidden');
+            }
+        }
+
+        // --- PROMO SYSTEM ---
+        function renderPromos() {
+            const list = document.getElementById('promo-list');
+            // Only show coupons that haven't been marked as used
+            list.innerHTML = couponsData.filter(c => !c.used).map(c => `
+                <div class="bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex flex-col relative overflow-hidden coupon-card group">
+                    <div class="absolute top-0 right-0 bg-orange-100 text-orange-600 px-3 py-1 rounded-bl-xl text-xs font-bold">
+                        ${c.type === 'percent' ? c.val + '%' : '฿' + c.val} OFF
+                    </div>
+                    <div class="flex items-center gap-4 mb-4 mt-2">
+                        <div class="w-12 h-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center text-xl">
+                            <i class="fas ${c.icon}"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">${c.title}</h4>
+                            <p class="text-xs text-slate-500">${c.code}</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4 flex-grow">${c.desc}</p>
+                    <button onclick="useCoupon('${c.code}')" class="w-full ${activeCoupon && activeCoupon.code === c.code ? 'bg-green-600 text-white' : 'bg-slate-900 text-white'} py-2 rounded-xl text-sm font-bold transition hover:opacity-90">
+                        ${activeCoupon && activeCoupon.code === c.code ? '<i class="fas fa-check"></i> ใช้อยู่' : 'ใช้คูปองนี้'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function useCoupon(code) {
+            const coupon = couponsData.find(c => c.code === code);
+            if(coupon) {
+                activeCoupon = coupon;
+                // mark as used so it disappears from the promo list
+                coupon.used = true;
+                alert(`เลือกใช้คูปอง ${coupon.title} เรียบร้อยแล้ว!`);
+                renderPromos(); // update UI state
+                updateCart(); // recalculate price
+                // Optionally switch back to menu or open cart
+                document.getElementById('cart-sidebar').classList.remove('translate-x-full');
+                document.getElementById('overlay').classList.remove('hidden');
+            }
+        }
+
+        function removeCoupon() {
+            if(activeCoupon) {
+                // Make the coupon available again
+                const coupon = couponsData.find(c => c.code === activeCoupon.code);
+                if(coupon) coupon.used = false;
+            }
+            activeCoupon = null;
+            updateCart();
+            renderPromos();
+        }
+
+        // --- HISTORY SYSTEM ---
+        function openHistoryModal() {
+            if (!currentUser) return alert("กรุณาเข้าสู่ระบบเพื่อดูประวัติการสั่งซื้อ");
+            const historyContent = document.getElementById('history-content');
+            const orders = currentUser.orders || [];
+
+            if(orders.length === 0) {
+                historyContent.innerHTML = `<div class="text-center py-10 text-slate-400"><i class="fas fa-history text-4xl mb-3 opacity-50"></i><p>ยังไม่มีประวัติการสั่งซื้อ</p></div>`;
+            } else {
+                const sortedOrders = [...orders].reverse();
+                historyContent.innerHTML = sortedOrders.map(order => `
+                    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                        <div class="flex justify-between items-start mb-2 pb-2 border-b border-dashed border-slate-200">
+                            <div><span class="text-xs font-bold text-slate-400 block">Order #${order.id}</span><span class="text-xs text-slate-600">${order.date}</span></div>
+                            <span class="text-orange-600 font-bold">฿${order.netTotal.toLocaleString()}</span>
+                        </div>
+                        <div class="space-y-1 mb-2">${order.items.map(item => `<div class="flex justify-between text-xs text-slate-500"><span>${item.name} x${item.qty}</span><span>฿${(item.price * item.qty).toLocaleString()}</span></div>`).join('')}</div>
+                        ${order.couponDiscount > 0 ? `<div class="flex justify-between text-xs text-green-600 border-t pt-1 border-dashed"><span>คูปอง (${order.couponCode})</span><span>-฿${order.couponDiscount.toLocaleString()}</span></div>` : ''}
+                        ${order.promoDiscount > 0 ? `<div class="flex justify-between text-xs text-green-600"><span>โปรโมชั่น</span><span>-฿${order.promoDiscount.toLocaleString()}</span></div>` : ''}
+                        <div class="flex justify-between text-[10px] text-slate-400 mt-2"><span>แต้มที่ได้: ${order.earnedPoints}</span><span class="text-green-600 font-bold">เสร็จสิ้น</span></div>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('history-modal').classList.remove('hidden');
+            document.getElementById('history-modal').classList.add('flex');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal').classList.add('hidden');
+            document.getElementById('history-modal').classList.remove('flex');
+        }
+
+        // --- MENU & CART ---
+        function renderMenu(items) {
+            const grid = document.getElementById('menu-grid');
+            if(items.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">ไม่พบรายการอาหาร</div>`;
+                return;
+            }
+            grid.innerHTML = items.map(item => `
+                <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-slate-100 flex flex-col pop-in group">
+                    <div class="h-40 relative overflow-hidden">
+                        <img src="${item.img}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        <span class="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-slate-600 shadow-sm border border-slate-100">${item.category}</span>
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 class="font-bold text-slate-800 text-sm mb-1 line-clamp-1">${item.name}</h3>
+                        <p class="text-orange-600 font-bold text-lg">฿${item.price}</p>
+                        <button onclick="addToCart(${item.id})" class="mt-3 w-full bg-slate-50 text-slate-900 border border-slate-200 py-2 rounded-xl text-xs font-bold hover:bg-slate-900 hover:text-white transition flex items-center justify-center gap-2">
+                            <i class="fas fa-plus"></i> เพิ่ม
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterCategory(cat) {
+            activeCat = cat;
+            document.querySelectorAll('.cat-btn').forEach(b => {
+                b.classList.remove('bg-orange-600', 'text-white', 'shadow-md');
+                b.classList.add('bg-white', 'text-slate-600', 'border');
+            });
+            event.target.classList.add('bg-orange-600', 'text-white', 'shadow-md');
+            event.target.classList.remove('bg-white', 'text-slate-600', 'border');
+            filterMenu();
+        }
+
+        function filterMenu() {
+            const q = document.getElementById('search-input').value.toLowerCase();
+            const filtered = menuData.filter(i => (activeCat === 'all' || i.category === activeCat) && (i.name.toLowerCase().includes(q)));
+            renderMenu(filtered);
+        }
+
+        function addToCart(id) {
+            const item = menuData.find(i => i.id === id);
+            const exists = cart.find(c => c.id === id);
+            if (exists) exists.qty++; else cart.push({...item, qty: 1});
+            if(cart.length === 1 && cart[0].qty === 1) {
+                document.getElementById('cart-sidebar').classList.remove('translate-x-full');
+                document.getElementById('overlay').classList.remove('hidden');
+            }
+            updateCart();
+        }
+
+        function changeQty(id, delta) {
+            const item = cart.find(i => i.id === id);
+            if(!item) return;
+            item.qty += delta;
+            if(item.qty <= 0) cart = cart.filter(i => i.id !== id);
+            updateCart();
+        }
+
+        function applyPoints() {
+            if(!currentUser) return;
+            const input = document.getElementById('use-points-input');
+            const pts = parseInt(input.value);
+            if(!pts || pts <= 0) return alert("กรุณาระบุจำนวนแต้ม");
+            if(pts > currentUser.points) return alert("แต้มของคุณไม่เพียงพอ");
+            if(pts < 10) return alert("ขั้นต่ำ 10 แต้ม");
+            pointsDiscount = Math.floor(pts / 10);
+            input.value = '';
+            updateCart();
+        }
+
+        function togglePointsPromo() {
+            if(!currentUser) return alert("กรุณาเข้าสู่ระบบก่อนใช้แต้มโปรโมชั่น");
+            // Toggle off
+            if(pointsPromoActive) {
+                if(!confirm("ต้องการยกเลิกการใช้โปรโมชั่น 1000 แต้ม สำหรับส่วนลด 10% ใช่หรือไม่?")) return;
+                pointsPromoActive = false;
+                updateCart();
+                return;
+            }
+
+            // Try enable
+            if(currentUser.points < POINTS_PROMO_COST) return alert("แต้มไม่เพียงพอสำหรับโปรโมชั่นนี้ (ต้องมีอย่างน้อย 1000 แต้ม)");
+            if(!confirm("เปลี่ยนแต้ม 1000 แต้มเป็นส่วนลด 10% จากยอดรวมก่อนภาษี? ยืนยันเพื่อใช้โปรโมชั่นนี้.")) return;
+            pointsPromoActive = true;
+            updateCart();
+        }
+
+        function updateCart() {
+            const list = document.getElementById('cart-items');
+            
+            if(cart.length === 0) {
+                list.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-300"><i class="fas fa-shopping-basket text-4xl mb-2"></i><p class="text-sm">ไม่มีสินค้าในตะกร้า</p></div>`;
+                document.getElementById('cart-subtotal').innerText = '฿0.00';
+                document.getElementById('cart-vat').innerText = '฿0.00';
+                document.getElementById('cart-total').innerText = '฿0.00';
+                document.getElementById('cart-count').innerText = 0;
+                pointsDiscount = 0;
+                updatePricing(0);
+                return;
+            }
+
+            let count = 0;
+            let subtotal = 0;
+            list.innerHTML = cart.map(item => {
+                count += item.qty;
+                subtotal += item.price * item.qty;
+                return `
+                    <div class="flex gap-3 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                        <img src="${item.img}" class="w-12 h-12 rounded-lg object-cover">
+                        <div class="flex-grow min-w-0">
+                            <h4 class="font-bold text-sm truncate">${item.name}</h4>
+                            <p class="text-orange-600 text-xs font-bold">฿${item.price}</p>
+                        </div>
+                        <div class="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
+                            <button onclick="changeQty(${item.id}, -1)" class="w-5 h-5 flex items-center justify-center bg-white rounded shadow-sm text-xs hover:text-red-500"><i class="fas fa-minus"></i></button>
+                            <span class="text-xs font-bold w-4 text-center">${item.qty}</span>
+                            <button onclick="changeQty(${item.id}, 1)" class="w-5 h-5 flex items-center justify-center bg-white rounded shadow-sm text-xs hover:text-green-600"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('cart-count').innerText = count;
+            updatePricing(subtotal);
+        }
+
+        function updatePricing(subtotal) {
+            // 1. Standard Auto Promo (>500 get 10%)
+            // ถ้ามี Coupon จะไม่ใช้ Auto Promo (หรือจะให้ใช้คู่กันก็ได้ แต่โดยทั่วไปจะใช้ได้อย่างใดอย่างหนึ่งเพื่อความง่าย)
+            // ในที่นี้: ถ้ามี Active Coupon -> ใช้ Coupon, ถ้าไม่มี -> ใช้ Auto
+            
+            let promoDisc = 0;
+            let couponDisc = 0;
+
+            // Calculate Coupon Discount
+            if(activeCoupon) {
+                // Check conditions
+                let eligibleAmount = subtotal;
+                
+                // Filter Category specific
+                if(activeCoupon.cat) {
+                    eligibleAmount = cart.filter(i => i.category === activeCoupon.cat).reduce((sum, i) => sum + (i.price * i.qty), 0);
+                }
+
+                if(subtotal >= activeCoupon.min) {
+                    if(activeCoupon.type === 'percent') {
+                        couponDisc = eligibleAmount * (activeCoupon.val / 100);
+                    } else {
+                        couponDisc = activeCoupon.val;
+                    }
+                    // Max discount check could go here
+                }
+            }
+
+            // Calculate Auto Promo (Only if no coupon is active OR enable stacking logic here)
+            // Let's make them MUTUALLY EXCLUSIVE for simplicity -> Coupon overrides Auto Promo
+            if(!activeCoupon && subtotal >= 500) {
+                promoDisc = subtotal * 0.10;
+            }
+
+            // Render UI for Discounts
+            const promoRow = document.getElementById('row-promo');
+            const couponRow = document.getElementById('row-coupon');
+            const activeCouponBox = document.getElementById('active-coupon-box');
+
+            if(promoDisc > 0) {
+                promoRow.classList.remove('hidden');
+                document.getElementById('val-promo').innerText = `-฿${promoDisc.toFixed(2)}`;
+            } else {
+                promoRow.classList.add('hidden');
+            }
+
+            if(activeCoupon) {
+                activeCouponBox.classList.remove('hidden');
+                document.getElementById('ac-code').innerText = activeCoupon.code;
+                document.getElementById('ac-desc').innerText = activeCoupon.desc;
+
+                if(couponDisc > 0) {
+                    couponRow.classList.remove('hidden');
+                    document.getElementById('lbl-coupon').innerText = `คูปอง ${activeCoupon.code}`;
+                    document.getElementById('val-coupon').innerText = `-฿${couponDisc.toFixed(2)}`;
+                } else {
+                    couponRow.classList.add('hidden'); // Coupon active but conditions not met (e.g. min spend)
+                }
+            } else {
+                activeCouponBox.classList.add('hidden');
+                couponRow.classList.add('hidden');
+            }
+
+            // Points Promo (1000 pts -> 10%)
+            let pointsPromoDisc = 0;
+            if(pointsPromoActive && currentUser) {
+                if(currentUser.points >= POINTS_PROMO_COST) {
+                    pointsPromoDisc = subtotal * POINTS_PROMO_PERCENT;
+                    pointsPromoDisc = Math.min(pointsPromoDisc, subtotal - promoDisc - couponDisc);
+                } else {
+                    // no longer eligible
+                    pointsPromoActive = false;
+                }
+            }
+
+            // Points Discount (manual redemption)
+            if(pointsDiscount > 0) {
+                // Cap points discount to remaining after other discounts and points promo
+                if(pointsDiscount > (subtotal - promoDisc - couponDisc - pointsPromoDisc)) pointsDiscount = Math.max(0, subtotal - promoDisc - couponDisc - pointsPromoDisc);
+                document.getElementById('row-points').classList.remove('hidden');
+                document.getElementById('val-points').innerText = `-฿${pointsDiscount.toFixed(2)}`;
+            } else {
+                document.getElementById('row-points').classList.add('hidden');
+            }
+
+            if(pointsPromoDisc > 0) {
+                document.getElementById('row-points-promo').classList.remove('hidden');
+                document.getElementById('val-points-promo').innerText = `-฿${pointsPromoDisc.toFixed(2)}`;
+                document.getElementById('points-promo-status').classList.remove('hidden');
+                document.getElementById('btn-use-points-promo').innerText = 'ยกเลิก';
+            } else {
+                document.getElementById('row-points-promo').classList.add('hidden');
+                document.getElementById('points-promo-status').classList.add('hidden');
+                document.getElementById('btn-use-points-promo').innerText = 'ใช้';
+            }
+
+            const afterDisc = Math.max(0, subtotal - promoDisc - couponDisc - pointsPromoDisc - pointsDiscount);
+            const vat = afterDisc * 0.07;
+            const netTotal = afterDisc + vat;
+
+            document.getElementById('cart-subtotal').innerText = `฿${subtotal.toFixed(2)}`;
+            document.getElementById('cart-vat').innerText = `฿${vat.toFixed(2)}`;
+            document.getElementById('cart-total').innerText = `฿${netTotal.toFixed(2)}`;
+
+            return { subtotal, promoDisc, couponDisc, pointsDiscount, pointsPromoDisc, vat, netTotal };
+        }
+
+        import {saveOrder} from "./Database.js";
+
+        // --- CHECKOUT & RECEIPT ---
+        function checkout() {
+            if(cart.length === 0) return;
+            
+            let subtotal = 0;
+            cart.forEach(i => subtotal += i.price * i.qty);
+            const pricing = updatePricing(subtotal);
+            const now = new Date();
+            const orderId = 'INV-' + Math.floor(100000 + Math.random() * 900000);
+            const dateStr = now.toLocaleString('th-TH');
+
+            let earnedPoints = 0;
+            if(currentUser) {
+                if(pointsDiscount > 0) currentUser.points -= (pointsDiscount * 10);
+
+                // If user used the 1000-points promo, deduct the flat 1000 pts and record the discount
+                if(pointsPromoActive) {
+                    currentUser.points -= POINTS_PROMO_COST;
+                }
+
+                earnedPoints = Math.floor(pricing.netTotal / 25);
+                currentUser.points += earnedPoints;
+
+                const newOrder = {
+                    id: orderId,
+                    // +++ เพิ่มข้อมูล User ตรงนี้ครับ +++
+                    userEmail: currentUser.email,  // เก็บอีเมลเพื่อใช้อ้างอิง
+                    userName: currentUser.name,    // เก็บชื่อลูกค้า
+                    // -----------------------------
+                    date: dateStr,
+                    items: [...cart],
+                    subtotal: pricing.subtotal,
+                    promoDiscount: pricing.promoDisc,
+                    couponDiscount: pricing.couponDisc,
+                    couponCode: activeCoupon ? activeCoupon.code : null,
+                    pointsPromoUsed: pointsPromoActive,
+                    pointsPromoValue: pricing.pointsPromoDisc || 0,
+                    vat: pricing.vat,
+                    netTotal: pricing.netTotal,
+                    earnedPoints: earnedPoints
+                };
+
+                if(!currentUser.orders) currentUser.orders = [];
+                currentUser.orders.push(newOrder);
+
+                let users = JSON.parse(localStorage.getItem('users') || '[]');
+                users = users.map(u => u.email === currentUser.email ? currentUser : u);
+                localStorage.setItem('users', JSON.stringify(users));
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateUserUI();
+                saveOrder(newOrder);
+            }
+
+            document.getElementById('rec-id').innerText = orderId;
+            document.getElementById('rec-date').innerText = dateStr;
+            document.getElementById('rec-customer').innerText = currentUser ? currentUser.name : 'ลูกค้าทั่วไป';
+
+            document.getElementById('rec-items-list').innerHTML = cart.map(i => `<div class="flex justify-between"><div class="flex flex-col"><span>${i.name}</span><span class="text-[9px] text-slate-400">@${i.price} x ${i.qty}</span></div><span class="font-bold">฿${(i.price * i.qty).toFixed(2)}</span></div>`).join('');
+
+            document.getElementById('rec-sub').innerText = `฿${pricing.subtotal.toFixed(2)}`;
+            document.getElementById('rec-vat-val').innerText = `฿${pricing.vat.toFixed(2)}`;
+            document.getElementById('rec-net').innerText = `฿${pricing.netTotal.toFixed(2)}`;
+
+            // Receipt Discounts
+            if(pricing.promoDisc > 0) {
+                document.getElementById('rec-row-disc').classList.remove('hidden');
+                document.getElementById('rec-disc').innerText = `-฿${pricing.promoDisc.toFixed(2)}`;
+            } else {
+                document.getElementById('rec-row-disc').classList.add('hidden');
+            }
+
+            if(pricing.couponDisc > 0) {
+                document.getElementById('rec-row-coupon').classList.remove('hidden');
+                document.getElementById('rec-coupon-val').innerText = `-฿${pricing.couponDisc.toFixed(2)}`;
+            } else {
+                document.getElementById('rec-row-coupon').classList.add('hidden');
+            }
+
+            if(pricing.pointsPromoDisc > 0) {
+                document.getElementById('rec-row-points-promo').classList.remove('hidden');
+                document.getElementById('rec-points-promo-val').innerText = `-฿${pricing.pointsPromoDisc.toFixed(2)}`;
+            } else {
+                document.getElementById('rec-row-points-promo').classList.add('hidden');
+            }
+
+            if(currentUser) {
+                document.getElementById('rec-points-info').classList.remove('hidden');
+                document.getElementById('rec-earned').innerText = `+${earnedPoints}`;
+                document.getElementById('rec-balance').innerText = currentUser.points;
+            }
+
+            document.getElementById('receipt-modal').classList.remove('hidden');
+            document.getElementById('receipt-modal').classList.add('flex');
+
+
+        }
+
+        function closeReceipt() {
+            document.getElementById('receipt-modal').classList.remove('flex');
+            document.getElementById('receipt-modal').classList.add('hidden');
+            cart = [];
+            pointsDiscount = 0;
+            activeCoupon = null; // Reset coupon after purchase
+            pointsPromoActive = false; // Reset promo after purchase
+            updateCart();
+            toggleCart();
+        }
+
+        function toggleCart() {
+            const sb = document.getElementById('cart-sidebar');
+            const ov = document.getElementById('overlay');
+            if(sb.classList.contains('translate-x-full')) {
+                sb.classList.remove('translate-x-full');
+                ov.classList.remove('hidden');
+            } else {
+                sb.classList.add('translate-x-full');
+                ov.classList.add('hidden');
+            }
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+            document.getElementById('overlay').classList.toggle('hidden');
+        }
+
+        function closeAllMenus() {
+            document.getElementById('cart-sidebar').classList.add('translate-x-full');
+            document.getElementById('mobile-menu').classList.add('hidden');
+            document.getElementById('overlay').classList.add('hidden');
+        }
+
+        window.onload = () => {
+            const savedUser = localStorage.getItem('currentUser');
+            if(savedUser) {
+                currentUser = JSON.parse(savedUser);
+                if(!currentUser.orders) currentUser.orders = [];
+                updateUserUI();
+            }
+            renderMenu(menuData);
+        };
+
+
+        // +++ เพิ่มตรงนี้ (เพื่อให้ปุ่มกดใน HTML ทำงานได้) +++
+            window.switchPage = switchPage;
+            window.openAuthModal = openAuthModal;
+            window.closeAuthModal = closeAuthModal;
+            window.handleLogin = handleLogin;
+            window.handleRegister = handleRegister;
+            window.logout = logout;
+            window.toggleCart = toggleCart;
+            window.addToCart = addToCart;
+            window.changeQty = changeQty;
+            window.filterCategory = filterCategory;
+            window.filterMenu = filterMenu;
+            window.checkout = checkout;       // <--- ตัวสำคัญ
+            window.closeReceipt = closeReceipt;
+            window.switchAuth = switchAuth;
+            window.toggleMobileMenu = toggleMobileMenu;
+            window.openHistoryModal = openHistoryModal;
+            window.closeHistoryModal = closeHistoryModal;
+            window.useCoupon = useCoupon;
+            window.removeCoupon = removeCoupon;
+            window.togglePointsPromo = togglePointsPromo;
+            window.applyPoints = applyPoints;
+    </script>
+    <script type="module" src="Database.js"></script>
+</body>
+</html>
