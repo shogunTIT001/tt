@@ -41,7 +41,7 @@ jobs:
           cp ทดสอบ/foodMenu.js footMenu.js
           
           # 2. ใช้คำสั่ง sed แก้โค้ดข้างในไฟล์ index.html (เปลี่ยน ../foot เป็น foot)
-          sed -i 's|\.\./foot|foot|g' index.html
+          sed -i 's|\.\./foot|tt/foot|g' index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
